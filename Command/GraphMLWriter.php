@@ -24,43 +24,51 @@ class GraphMLWriter
 
     public function output()
     {
-      //  dump($this->data);
+        dump($this->data);
         $this->createHeader();
 
-        foreach ($this->data as $entries) {
-           foreach ($entries as $entry) {
-
-               $relatedClasses = $entry['relatedClasses'];
-
-               // Wenn die Klasse Relations hat
-               if (!empty($relatedClasses)){
-                   dump($entry['class']);
-                   dump($relatedClasses);
-                        $parentClass = $entry['class'];
+        $this->createNodesAndEdges();
 
 
-                        $this->createNode($parentClass);
 
-                        foreach ($relatedClasses as $class) {
-                            foreach ($class as $relationType => $className) {
-                                dump($className);
-                                //Node erstellen
-                                $this->createNode($className);
-                                $this->createEdge($parentClass, $className);
-                            }
-                        }
-
-
-               }
-               //Bastodo: Auch Klassen abbilden, die keine Relations haben
-           }
-        }
 
         $this->createFooter();
         $this->writeToFile();
     }
 
+    private function createNodesAndEdges() {
+        foreach ($this->data as $entries) {
+            foreach ($entries as $entry) {
 
+                $relatedClasses = $entry['relatedClasses'];
+
+                // Wenn die Klasse Relations hat
+                if (!empty($relatedClasses)){
+
+                    $parentClass = $entry['class'];
+
+
+                    $this->createNode($parentClass);
+
+                    foreach ($relatedClasses as $class) {
+                        foreach ($class as $relationType => $className) {
+                            dump($className);
+                            //Node erstellen
+                            $this->createNode($className);
+                            $this->createEdge($parentClass, $className);
+                        }
+                    }
+
+
+                }
+                //Klassen abbilden, die keine Relations haben
+                if (empty($relatedClasses) && array_key_exists('class', $entry)) {
+                    dump($entry['class']);
+                    $this->createNode($entry['class']);
+                }
+            }
+        }
+    }
 
 
 
@@ -81,13 +89,16 @@ class GraphMLWriter
 
     private function createNode($className)
     {
+
         $nodeContent = "<node id='%s'>
                 <data key='nodegraphics'>
-                    <y:ShapeNode>
-              
-                <y:NodeLabel > %s </y:NodeLabel>
+                    <y:GenericNode configuration='com.yworks.entityRelationship.small_entity'>
+                    <y:Geometry height='40.0' width='100.0'/>
+                    <y:Fill color='#E8EEF7' color2='#B7C9E3' transparent='false'/>
+                    
+                <y:NodeLabel alignment='center' autoSizePolicy='content' verticalTextPosition='bottom' horizontalTextPosition='center'> %s </y:NodeLabel>
               <y:Shape type='roundrectangle'/>
-            </y:ShapeNode>
+            </y:GenericNode>
           </data>
         </node>
         ";

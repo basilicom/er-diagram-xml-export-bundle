@@ -16,9 +16,7 @@ class CreateERDiagramXMLExportCommand extends Command
 
     protected function configure()
     {
-        $this
-            // the short description shown while running "php bin/console list"
-            ->setDescription('Provides an yEd-XML Output to visualize ER of Pimcore Classes');
+        $this->setDescription('Provides an yEd-XML Output to visualize ER of Pimcore Classes');
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
