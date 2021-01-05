@@ -4,6 +4,8 @@
 namespace ERDiagramXMLExportBundle\Command;
 
 
+use Pimcore\Model\DataObject;
+
 class GraphMLWriter
 {
 
@@ -24,7 +26,8 @@ class GraphMLWriter
 
     public function output()
     {
-        dump($this->data);
+
+      //  dump($this->data);
         $this->createHeader();
 
         $this->createNodesAndEdges();
@@ -35,41 +38,6 @@ class GraphMLWriter
         $this->createFooter();
         $this->writeToFile();
     }
-
-    private function createNodesAndEdges() {
-        foreach ($this->data as $entries) {
-            foreach ($entries as $entry) {
-
-                $relatedClasses = $entry['relatedClasses'];
-
-                // Wenn die Klasse Relations hat
-                if (!empty($relatedClasses)){
-
-                    $parentClass = $entry['class'];
-
-
-                    $this->createNode($parentClass);
-
-                    foreach ($relatedClasses as $class) {
-                        foreach ($class as $relationType => $className) {
-                            dump($className);
-                            //Node erstellen
-                            $this->createNode($className);
-                            $this->createEdge($parentClass, $className);
-                        }
-                    }
-
-
-                }
-                //Klassen abbilden, die keine Relations haben
-                if (empty($relatedClasses) && array_key_exists('class', $entry)) {
-                    dump($entry['class']);
-                    $this->createNode($entry['class']);
-                }
-            }
-        }
-    }
-
 
 
     private function createHeader()
@@ -86,6 +54,35 @@ class GraphMLWriter
     ";
 
     }
+
+    private function createNodesAndEdges() {
+        foreach ($this->data as $entry) {
+            dump($entry);
+
+
+            // Wenn die Klasse Relations hat
+            $relatedClasses = $entry['relatedClasses'];
+
+            if (!empty($relatedClasses)) {
+                $parentClass = $entry['name'];
+
+                $this->createNode($parentClass);
+
+                foreach ($relatedClasses as $class) {
+                    foreach ($class as $relationType => $className) {
+                        //Node erstellen
+                        $this->createNode($className);
+                        $this->createEdge($parentClass, $className);
+                    }
+                }
+            }
+            //Klassen abbilden, die keine Relations haben
+            if (empty($relatedClasses) && array_key_exists('class', $entry)) {
+                $this->createNode($entry['class']);
+            }
+        }
+    }
+
 
     private function createNode($className)
     {
