@@ -3,8 +3,7 @@
 
 namespace ERDiagramXMLExportBundle\Command;
 
-
-use Pimcore\Model\DataObject;
+use Spatie\ArrayToXml\ArrayToXml;
 
 class GraphMLWriter
 {
@@ -26,14 +25,10 @@ class GraphMLWriter
 
     public function output()
     {
-
-      //  dump($this->data);
+        // dump($this->data);
         $this->createHeader();
 
         $this->createNodesAndEdges();
-
-
-
 
         $this->createFooter();
         $this->writeToFile();
@@ -50,15 +45,14 @@ class GraphMLWriter
     <key for='node' id='nodegraphics' yfiles.type='nodegraphics'/>
     <key for='graphml' id='resources' yfiles.type='resources'/>
     <key for='edge' id='edgegraphics' yfiles.type='edgegraphics'/>
-      <graph>
+      <graph edgedefault='directed' id='G'>
     ";
-
     }
 
-    private function createNodesAndEdges() {
+    private function createNodesAndEdges()
+    {
         foreach ($this->data as $entry) {
-            dump($entry);
-
+            $this->createNode($entry);
 
             // Wenn die Klasse Relations hat
             $relatedClasses = $entry['relatedClasses'];
@@ -66,61 +60,96 @@ class GraphMLWriter
             if (!empty($relatedClasses)) {
                 $parentClass = $entry['name'];
 
-                $this->createNode($parentClass);
-
                 foreach ($relatedClasses as $class) {
                     foreach ($class as $relationType => $className) {
-                        //Node erstellen
-                        $this->createNode($className);
                         $this->createEdge($parentClass, $className);
                     }
                 }
-            }
-            //Klassen abbilden, die keine Relations haben
-            if (empty($relatedClasses) && array_key_exists('class', $entry)) {
-                $this->createNode($entry['class']);
             }
         }
     }
 
 
-    private function createNode($className)
+    private function createNode($entry)
     {
+        $className = $entry['name'];
 
-        $nodeContent = "<node id='%s'>
-                <data key='nodegraphics'>
-                    <y:GenericNode configuration='com.yworks.entityRelationship.small_entity'>
-                    <y:Geometry height='40.0' width='100.0'/>
-                    <y:Fill color='#E8EEF7' color2='#B7C9E3' transparent='false'/>
-                    
-                <y:NodeLabel alignment='center' autoSizePolicy='content' verticalTextPosition='bottom' horizontalTextPosition='center'> %s </y:NodeLabel>
-              <y:Shape type='roundrectangle'/>
+        /*
+         * Sadly i cant use Spatie\ArrayToXml\ArrayToXml here because it's not possible to set an array for the _value
+         * Element
+         * see: https://github.com/spatie/array-to-xml/issues/75#issuecomment-413726065
+         */
+        $nodeContent = '<node id="%s">
+          <data key="nodegraphics">
+            <y:GenericNode configuration="com.yworks.entityRelationship.big_entity">
+              <y:Geometry height="120.0" width="120.0" />
+              <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="#B7C9E3" configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true"  >%s</y:NodeLabel>
+              %s
             </y:GenericNode>
           </data>
-        </node>
-        ";
-        $nodeContent = sprintf($nodeContent, $className ,$className);
+        </node>';
+
+        $nodeContent = sprintf($nodeContent, $className, $className, $this->createAttributes($entry));
+
         $this->xmlOutput .= $nodeContent;
 
         $this->actualNodeId += 1;
     }
 
+    private function createAttributes($entry): string
+    {
+        $fields = $entry['fields'];
+        $attributesString = '';
+
+        if (!empty($fields)) {
+            foreach ($fields as $field) {
+                foreach ($field as $fieldname => $fieldtype) {
+                    $attributesString .= $fieldname . ': ' . $fieldtype .PHP_EOL;
+                }
+            }
+        }
+
+      $rootElement = [
+          'rootElementName' => 'y:NodeLabel',
+          '_attributes' => [
+              'alignement' => 'left',
+              'autoSizePolicy' => 'content',
+              'horizontalTextPosition' => 'center',
+              'verticalTextPosition' => 'top',
+              'visible' => 'true',
+              'clipContent' => 'true',
+              'hasDetailsColor' => 'false',
+              'omitDetails' => 'false',
+              'modelName' => 'internal',
+              'modelPosition' => 'c',
+              'configuration' => 'com.yworks.entityRelationship.label.attributes',
+          ],
+
+      ];
+
+      $attributes = [
+          '_value' => $attributesString
+      ];
+
+      $arrayToXml = new ArrayToXml($attributes, $rootElement);
+
+      return $arrayToXml->dropXmlDeclaration()->prettify()->toXml();
+    }
+
     private function createEdge($source, $target)
     {
         $edgeContent = "
-            <edge id='%s' source='%s' target='%s'>
-                <data key='edgegraphics'>
-                     <y:PolyLineEdge>
-          
-                     </y:PolyLineEdge>
-                </data>
-            </edge>";
+        <edge id='%s' source='%s' target='%s'>
+            <data key='edgegraphics'>
+                 <y:PolyLineEdge></y:PolyLineEdge>
+            </data>
+        </edge>";
 
         $edgeContent = sprintf($edgeContent, $this->actualEdgeId, $source, $target);
         $this->actualEdgeId += 1;
 
         $this->xmlOutput .= $edgeContent;
-
     }
 
 

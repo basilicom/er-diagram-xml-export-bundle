@@ -83,8 +83,7 @@ class CreateERDiagramXMLExportCommand extends Command
 
             if (strpos($fieldType, 'Relation') == false) {
                 $fields = [
-                    'name' => $fieldDefinition->getName(),
-                    'fieldType' => $fieldType
+                    $fieldDefinition->getName() => $fieldType
                 ];
                 array_push($data, $fields);
             }
@@ -93,4 +92,6 @@ class CreateERDiagramXMLExportCommand extends Command
         return $data;
 
     }
+
+    //TODO FieldCollections und ObjectBricks laden (abbilden)
 }
