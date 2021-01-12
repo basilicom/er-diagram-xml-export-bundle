@@ -8,7 +8,8 @@ use Spatie\ArrayToXml\ArrayToXml;
 class GraphMLWriter
 {
 
-    private $data = [];
+    private $classDefinitions = [];
+    private $fieldCollections = [];
     private $xmlOutput = '';
     private $actualNodeId = 0;
     private $actualEdgeId = 0;
@@ -16,11 +17,13 @@ class GraphMLWriter
     /**
      * GraphMLWriter constructor.
      *
-     * @param array $data
+     * @param array $classDefinitions
+     * @param array $fieldCollections
      */
-    public function __construct(array $data)
+    public function __construct(array $classDefinitions, array $fieldCollections)
     {
-        $this->data = $data;
+        $this->classDefinitions = $classDefinitions;
+        $this->fieldCollections = $fieldCollections;
     }
 
     public function output()
@@ -51,14 +54,14 @@ class GraphMLWriter
 
     private function createNodesAndEdges()
     {
-        foreach ($this->data as $entry) {
-            $this->createNode($entry);
+        foreach ($this->classDefinitions as $classDefinition) {
+            $this->createNode($classDefinition);
 
             // Wenn die Klasse Relations hat
-            $relatedClasses = $entry['relatedClasses'];
+            $relatedClasses = $classDefinition['relatedClasses'];
 
             if (!empty($relatedClasses)) {
-                $parentClass = $entry['name'];
+                $parentClass = $classDefinition['name'];
 
                 foreach ($relatedClasses as $class) {
                     foreach ($class as $relationType => $className) {
@@ -67,12 +70,20 @@ class GraphMLWriter
                 }
             }
         }
+        foreach ($this->fieldCollections as $fieldCollection) {
+            $this->createNode($fieldCollection, true);
+        }
     }
 
 
-    private function createNode($entry)
+    private function createNode(array $entry, bool $isFieldCollection = false )
     {
         $className = $entry['name'];
+        $fillColor = '#E8EEF7';
+        if ($isFieldCollection) {
+            $fillColor = '#f7f0e8';
+        }
+
 
         /*
          * Sadly i cant use Spatie\ArrayToXml\ArrayToXml here because it's not possible to set an array for the _value
@@ -82,15 +93,15 @@ class GraphMLWriter
         $nodeContent = '<node id="%s">
           <data key="nodegraphics">
             <y:GenericNode configuration="com.yworks.entityRelationship.big_entity">
-              <y:Geometry height="120.0" width="120.0" />
+              <y:Geometry height="120.0" width="160.0" />
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="#B7C9E3" configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true"  >%s</y:NodeLabel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s" configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true"  >%s</y:NodeLabel>
               %s
             </y:GenericNode>
           </data>
         </node>';
 
-        $nodeContent = sprintf($nodeContent, $className, $className, $this->createAttributes($entry));
+        $nodeContent = sprintf($nodeContent, $className, $fillColor, $className, $this->createAttributes($entry));
 
         $this->xmlOutput .= $nodeContent;
 
@@ -156,6 +167,7 @@ class GraphMLWriter
     /** BASTODO Ordentlich bauen */
     private function writeToFile()
     {
+
         $file = __DIR__ . '/' . 'output.graphml';
         file_put_contents($file, $this->xmlOutput);
     }

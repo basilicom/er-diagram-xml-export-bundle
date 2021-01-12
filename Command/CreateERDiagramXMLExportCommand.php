@@ -7,7 +7,8 @@ use Pimcore\Model\DataObject;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Pimcore\Model\DataObject\ClassDefinition\Listing as Listing;
+use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
+use \Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
 
 class CreateERDiagramXMLExportCommand extends Command
 {
@@ -21,7 +22,7 @@ class CreateERDiagramXMLExportCommand extends Command
     public function execute(InputInterface $input, OutputInterface $output)
     {
 
-        $result = new GraphMLWriter($this->getClassDefinitionData());
+        $result = new GraphMLWriter($this->getClassDefinitionData(), $this->getFieldCollectionsData());
         $result->output();
 
         return 0;
@@ -29,7 +30,7 @@ class CreateERDiagramXMLExportCommand extends Command
 
     private function getClassDefinitionData(): array
     {
-        $listing = new Listing();
+        $listing = new ClassDefinitionListing();
         $classDefinitions = $listing->load();
 
         $classDefinitionData = [];
@@ -39,10 +40,10 @@ class CreateERDiagramXMLExportCommand extends Command
             $fieldDefinitions = $classDefinition->getFieldDefinitions();
 
             $data = [
-               'id' => $classDefinition->getId(),
-               'name' => $classDefinition->getName(),
-               'fields' => $this->processFieldDefinitions($fieldDefinitions),
-               'relatedClasses' => $this->getRelatedClasses($fieldDefinitions)
+                'id' => $classDefinition->getId(),
+                'name' => $classDefinition->getName(),
+                'fields' => $this->processFieldDefinitions($fieldDefinitions),
+                'relatedClasses' => $this->getRelatedClasses($fieldDefinitions),
 
             ];
 
@@ -68,6 +69,8 @@ class CreateERDiagramXMLExportCommand extends Command
                     array_push($relatedClasses, [$fieldType => $class['classes']]);
                 }
             }
+
+
         }
 
         return $relatedClasses;
@@ -87,11 +90,36 @@ class CreateERDiagramXMLExportCommand extends Command
                 ];
                 array_push($data, $fields);
             }
+
+
         }
 
         return $data;
 
     }
 
-    //TODO FieldCollections und ObjectBricks laden (abbilden)
+    private function getFieldCollectionsData(): array
+    {
+      $fieldCollectionData = [];
+
+      $fieldCollectionListing = new FieldCollectionListing();
+      $fieldCollections = $fieldCollectionListing->load();
+
+      foreach ($fieldCollections as $fieldCollection) {
+
+          $data = [
+
+              'name' => $fieldCollection->getKey(),
+              'fields' => $this->processFieldDefinitions($fieldCollection->getFieldDefinitions())
+
+          ];
+          array_push($fieldCollectionData, $data);
+
+      }
+
+      dump(($fieldCollectionData));
+      return $fieldCollectionData;
+    }
+
+    //TODO  ObjectBricks laden (abbilden)
 }
