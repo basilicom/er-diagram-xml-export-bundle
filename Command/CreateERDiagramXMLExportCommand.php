@@ -9,7 +9,7 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
 use \Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
-
+use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;
 class CreateERDiagramXMLExportCommand extends Command
 {
     protected static $defaultName = 'basilicom:create-er-diagram-xml-export';
@@ -88,14 +88,24 @@ class CreateERDiagramXMLExportCommand extends Command
                 $fields = [
                     $fieldDefinition->getName() => $fieldType
                 ];
+                if ($fieldDefinition instanceof FieldCollections) {
+
+                    $allowedTypes = [];
+
+                    foreach ($fieldDefinition->getAllowedTypes() as $allowedType) {
+                        array_push($allowedTypes, $allowedType);
+                    }
+                    $fields = [
+                        $fieldDefinition->getName() => $allowedTypes
+                    ];
+                }
+
                 array_push($data, $fields);
+
             }
-
-
         }
 
         return $data;
-
     }
 
     private function getFieldCollectionsData(): array
@@ -105,8 +115,11 @@ class CreateERDiagramXMLExportCommand extends Command
       $fieldCollectionListing = new FieldCollectionListing();
       $fieldCollections = $fieldCollectionListing->load();
 
+
+
       foreach ($fieldCollections as $fieldCollection) {
 
+    //      dump($fieldCollection);
           $data = [
 
               'name' => $fieldCollection->getKey(),
@@ -117,7 +130,7 @@ class CreateERDiagramXMLExportCommand extends Command
 
       }
 
-      dump(($fieldCollectionData));
+     // dump(($fieldCollectionData));
       return $fieldCollectionData;
     }
 

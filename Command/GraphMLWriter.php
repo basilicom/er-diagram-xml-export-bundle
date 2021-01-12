@@ -93,7 +93,7 @@ class GraphMLWriter
         $nodeContent = '<node id="%s">
           <data key="nodegraphics">
             <y:GenericNode configuration="com.yworks.entityRelationship.big_entity">
-              <y:Geometry height="120.0" width="160.0" />
+              <y:Geometry height="150.0" width="160.0" />
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s" configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true"  >%s</y:NodeLabel>
               %s
@@ -116,7 +116,18 @@ class GraphMLWriter
         if (!empty($fields)) {
             foreach ($fields as $field) {
                 foreach ($field as $fieldname => $fieldtype) {
-                    $attributesString .= $fieldname . ': ' . $fieldtype .PHP_EOL;
+                    if (!is_array($fieldtype)){
+                        $attributesString .= $fieldname . ': ' . $fieldtype . PHP_EOL;
+                    }
+
+                    if (is_array($fieldtype)) {
+                        $allowedTypes = '';
+                        foreach ($fieldtype as $index => $allowedType) {
+                            $allowedTypes .= $allowedType . ' | ' ;
+                        }
+                        $allowedTypes = substr($allowedTypes,0, -3);
+                        $attributesString .= $fieldname . ': ' . $allowedTypes . PHP_EOL;
+                    }
                 }
             }
         }
