@@ -7,10 +7,11 @@ use Spatie\ArrayToXml\ArrayToXml;
 
 class GraphMLWriter
 {
-    private array $classDefinitions = [];
-    private array $fieldCollections = [];
-    private array $objectBricks = [];
+    private array $classDefinitions;
+    private array $fieldCollections;
+    private array $objectBricks;
     private string $xmlOutput = '';
+    private string $filename;
     private int $actualEdgeId = 0;
     private int $actualBoxSize = 0;
 
@@ -20,12 +21,15 @@ class GraphMLWriter
      * @param array $classDefinitions
      * @param array $fieldCollections
      * @param array $objectBricks
+     * @param string|null $filename
      */
-    public function __construct(array $classDefinitions, array $fieldCollections, array $objectBricks)
+    public function __construct(array $classDefinitions, array $fieldCollections, array $objectBricks, string
+    $filename)
     {
         $this->classDefinitions = $classDefinitions;
         $this->fieldCollections = $fieldCollections;
         $this->objectBricks = $objectBricks;
+        $this->filename = $filename;
     }
 
     public function output()
@@ -225,7 +229,10 @@ class GraphMLWriter
     /** BASTODO Ordentlich bauen */
     private function writeToFile()
     {
-        $file = __DIR__ . '/' . 'output.graphml';
+        if (empty($this->filename)) {
+            $file = __DIR__ . '/' . 'output.graphml';
+        }
+        else $file = __DIR__ . '/' . $this->filename . '.graphml';
         file_put_contents($file, $this->xmlOutput);
     }
 
