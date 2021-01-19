@@ -4,12 +4,15 @@
 namespace ERDiagramXMLExportBundle\Command;
 
 use Pimcore\Model\DataObject;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Objectbricks as ObjectBricks;
+use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
+use Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
+use Pimcore\Model\DataObject\Objectbrick\Definition\Listing as ObjectBrickListing;
 use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
-use \Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
-use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;
+
 class CreateERDiagramXMLExportCommand extends Command
 {
     protected static $defaultName = 'basilicom:create-er-diagram-xml-export';
@@ -21,8 +24,12 @@ class CreateERDiagramXMLExportCommand extends Command
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $result = new GraphMLWriter(
+            $this->getClassDefinitionData(),
+            $this->getFieldCollectionsData(),
+            $this->getObjectBricksData()
 
-        $result = new GraphMLWriter($this->getClassDefinitionData(), $this->getFieldCollectionsData());
+        );
         $result->output();
 
         return 0;
@@ -36,15 +43,16 @@ class CreateERDiagramXMLExportCommand extends Command
         $classDefinitionData = [];
 
         foreach ($classDefinitions as $classDefinition) {
-
             $fieldDefinitions = $classDefinition->getFieldDefinitions();
+
 
             $data = [
                 'id' => $classDefinition->getId(),
                 'name' => $classDefinition->getName(),
                 'fields' => $this->processFieldDefinitions($fieldDefinitions),
                 'relatedClasses' => $this->getRelatedClasses($fieldDefinitions),
-
+                'relatedFieldCollections' => $this->getRelatedFieldCollections($fieldDefinitions),
+                'relatedObjectBricks' => $this->getRelatedObjectBricks($fieldDefinitions),
             ];
 
             array_push($classDefinitionData, $data);
@@ -52,7 +60,6 @@ class CreateERDiagramXMLExportCommand extends Command
 
 
         return $classDefinitionData;
-
     }
 
 
@@ -69,8 +76,6 @@ class CreateERDiagramXMLExportCommand extends Command
                     array_push($relatedClasses, [$fieldType => $class['classes']]);
                 }
             }
-
-
         }
 
         return $relatedClasses;
@@ -86,22 +91,19 @@ class CreateERDiagramXMLExportCommand extends Command
 
             if (strpos($fieldType, 'Relation') == false) {
                 $fields = [
-                    $fieldDefinition->getName() => $fieldType
+                    $fieldDefinition->getName() => $fieldType,
                 ];
                 if ($fieldDefinition instanceof FieldCollections) {
-
                     $allowedTypes = [];
 
                     foreach ($fieldDefinition->getAllowedTypes() as $allowedType) {
                         array_push($allowedTypes, $allowedType);
                     }
                     $fields = [
-                        $fieldDefinition->getName() => $allowedTypes
+                        $fieldDefinition->getName() => $allowedTypes,
                     ];
                 }
-
                 array_push($data, $fields);
-
             }
         }
 
@@ -110,29 +112,77 @@ class CreateERDiagramXMLExportCommand extends Command
 
     private function getFieldCollectionsData(): array
     {
-      $fieldCollectionData = [];
+        $fieldCollectionData = [];
 
-      $fieldCollectionListing = new FieldCollectionListing();
-      $fieldCollections = $fieldCollectionListing->load();
+        $fieldCollectionListing = new FieldCollectionListing();
+        $fieldCollections = $fieldCollectionListing->load();
 
+        foreach ($fieldCollections as $fieldCollection) {
+            $data['fieldCollection'] = [
 
+                'name' => $fieldCollection->getKey(),
+                'fields' => $this->processFieldDefinitions($fieldCollection->getFieldDefinitions()),
 
-      foreach ($fieldCollections as $fieldCollection) {
+            ];
+            array_push($fieldCollectionData, $data);
+        }
 
-    //      dump($fieldCollection);
-          $data = [
-
-              'name' => $fieldCollection->getKey(),
-              'fields' => $this->processFieldDefinitions($fieldCollection->getFieldDefinitions())
-
-          ];
-          array_push($fieldCollectionData, $data);
-
-      }
-
-     // dump(($fieldCollectionData));
-      return $fieldCollectionData;
+        return $fieldCollectionData;
     }
 
-    //TODO  ObjectBricks laden (abbilden)
+    private function getRelatedFieldCollections($fieldDefinitions): array
+    {
+        $data = [];
+
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            if ($fieldDefinition instanceof FieldCollections) {
+                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
+                    array_push($data, $name);
+                }
+            }
+
+        }
+
+        return $data;
+    }
+
+    private function getRelatedObjectBricks($fieldDefinitions): array
+    {
+        $data = [];
+
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            if ($fieldDefinition instanceof ObjectBricks) {
+                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
+                    array_push($data, $name);
+                }
+            }
+
+        }
+
+        return $data;
+    }
+
+    private function getObjectBricksData(): array
+    {
+        $objectBricksData = [];
+
+        $objectBricksListing = new ObjectBrickListing();
+        $objectBricks = $objectBricksListing->load();
+
+        foreach ($objectBricks as $objectBrick) {
+            $data['objectBrick'] = [
+
+                'name' => $objectBrick->getKey(),
+                'fields' => $this->processFieldDefinitions($objectBrick->getFieldDefinitions()),
+
+            ];
+            array_push($objectBricksData, $data);
+        }
+
+        return $objectBricksData;
+    }
+
+
+
+
 }
