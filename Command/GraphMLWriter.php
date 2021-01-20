@@ -11,9 +11,10 @@ class GraphMLWriter
     private array $fieldCollections;
     private array $objectBricks;
     private string $xmlOutput = '';
-    private string $filename;
+    private ?string $filename;
     private int $actualEdgeId = 0;
-    private int $actualBoxSize = 0;
+    private int $actualBoxHeight = 0;
+    private int $actualBoxWidth = 0;
 
     /**
      * GraphMLWriter constructor.
@@ -21,10 +22,10 @@ class GraphMLWriter
      * @param array $classDefinitions
      * @param array $fieldCollections
      * @param array $objectBricks
-     * @param string|null $filename
+     * @param ?string $filename
      */
-    public function __construct(array $classDefinitions, array $fieldCollections, array $objectBricks, string
-    $filename)
+    public function __construct(array $classDefinitions, array $fieldCollections, array $objectBricks, ?string
+    $filename = null)
     {
         $this->classDefinitions = $classDefinitions;
         $this->fieldCollections = $fieldCollections;
@@ -114,6 +115,7 @@ class GraphMLWriter
         }
 
         $attributes = $this->createAttributes($entry);
+        dump($this->actualBoxWidth);
 
         /*
          * Sadly i cant use Spatie\ArrayToXml\ArrayToXml here because it's not possible to set an array for the _value
@@ -123,7 +125,7 @@ class GraphMLWriter
         $nodeContent = '<node id="%s">
           <data key="nodegraphics">
             <y:GenericNode configuration="com.yworks.entityRelationship.big_entity">
-              <y:Geometry height="%d" width="160" />
+              <y:Geometry height="%d" width="%d" />
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
               <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s" configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true"  >%s</y:NodeLabel>
               %s
@@ -132,7 +134,8 @@ class GraphMLWriter
         </node>';
 
 
-        $nodeContent = sprintf($nodeContent, $className, $this->actualBoxSize, $fillColor, $className, $attributes);
+        $nodeContent = sprintf($nodeContent, $className, $this->actualBoxHeight, $this->actualBoxWidth, $fillColor,
+                               $className, $attributes);
 
         $this->xmlOutput .= $nodeContent;
     }
@@ -143,12 +146,13 @@ class GraphMLWriter
         $attributesString = '';
 
         if (!empty($fields)) {
-            $this->actualBoxSize = 60 + count($fields) * 30;
+            $this->actualBoxHeight = 40 + count($fields) * 30;
 
             foreach ($fields as $field) {
                 foreach ($field as $fieldname => $fieldtype) {
                     if (!is_array($fieldtype)) {
                         $attributesString .= $fieldname . ': ' . $fieldtype . PHP_EOL;
+
                     }
                     if (is_array($fieldtype)) {
                         $allowedTypes = '';
@@ -159,6 +163,7 @@ class GraphMLWriter
                         $allowedTypes = substr($allowedTypes, 0, -3);
                         $attributesString .= $fieldname . ': ' . $allowedTypes . PHP_EOL;
                     }
+                    $this->actualBoxWidth = 120 + strlen($attributesString);
                 }
             }
         }
@@ -189,6 +194,14 @@ class GraphMLWriter
         $arrayToXml = new ArrayToXml($attributes, $rootElement);
 
         return $arrayToXml->dropXmlDeclaration()->prettify()->toXml();
+    }
+
+    private function calculateBoxWidth($attributesString) {
+
+        $newSize = 120 + strlen($attributesString);
+        if ($newSize > $this->actualBoxWidth) {
+            $this->actualBoxWidth = $newSize;
+        }
     }
 
     private function createEdge($source, $target, $relationType = '')
@@ -226,7 +239,6 @@ class GraphMLWriter
     }
 
 
-    /** BASTODO Ordentlich bauen */
     private function writeToFile()
     {
         if (empty($this->filename)) {
