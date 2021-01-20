@@ -4,11 +4,15 @@
 namespace ERDiagramXMLExportBundle\Command;
 
 use Pimcore\Model\DataObject;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Objectbricks as ObjectBricks;
+use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
+use Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
+use Pimcore\Model\DataObject\Objectbrick\Definition\Listing as ObjectBrickListing;
 use Symfony\Component\Console\Command\Command;
+use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
-use ERDiagramXMLExportBundle\Command\GraphMLWriter;
-
 
 class CreateERDiagramXMLExportCommand extends Command
 {
@@ -17,114 +21,81 @@ class CreateERDiagramXMLExportCommand extends Command
     protected function configure()
     {
         $this->setDescription('Provides an yEd-XML Output to visualize ER of Pimcore Classes');
+        $this->addArgument('filename', InputArgument::OPTIONAL, 'Provide a filename');
     }
 
     public function execute(InputInterface $input, OutputInterface $output)
     {
+        $result = new GraphMLWriter(
+            $this->getClassDefinitionData(),
+            $this->getFieldCollectionsData(),
+            $this->getObjectBricksData(),
+            $input->getArgument('filename') ?: ''
 
-        $result = new GraphMLWriter($this->collectClassDefinitionData());
+        );
         $result->output();
 
         return 0;
     }
 
-    private function collectClassDefinitionData(): array
+    private function getClassDefinitionData(): array
     {
-        $dataObjectsListing = DataObject\Concrete::getList();
-        $dataObjectsListing->setObjectTypes(['object']);
+        $listing = new ClassDefinitionListing();
+        $classDefinitions = $listing->load();
+
         $classDefinitionData = [];
 
-        foreach ($dataObjectsListing as $dataObject) {
-            $objectData = $this->exportObject($dataObject, true, true, true);
-            array_push($classDefinitionData, $objectData);
+        foreach ($classDefinitions as $classDefinition) {
+            $fieldDefinitions = $classDefinition->getFieldDefinitions();
+
+
+            $data = [
+                'id' => $classDefinition->getId(),
+                'name' => $classDefinition->getName(),
+                'fields' => $this->processFieldDefinitions($fieldDefinitions),
+                'relatedClasses' => $this->getRelatedClasses($fieldDefinitions),
+                'relatedFieldCollections' => $this->getRelatedFieldCollections($fieldDefinitions),
+                'relatedObjectBricks' => $this->getRelatedObjectBricks($fieldDefinitions),
+            ];
+
+            array_push($classDefinitionData, $data);
         }
+
 
         return $classDefinitionData;
     }
 
+    private function processFieldDefinitions($fieldDefinitions): array
+    {
+        $data = [];
 
-    private function exportObject(
-        DataObject $object,
-        $useRecursion = true,
-        $addFields = true,
-        $includeVariants = true
-    ): array {
-        $objectData = [];
+        /** @var DataObject\ClassDefinition\Data $fieldDefinition */
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            $fieldType = $fieldDefinition->getFieldtype();
 
-        $className = 'Folder';
+            if (strpos($fieldType, 'Relation') == false) {
+                $fields = [
+                    $fieldDefinition->getName() => $fieldType,
+                ];
+                if ($fieldDefinition instanceof FieldCollections) {
+                    $allowedTypes = [];
 
-        if ($object->getType() !== 'folder') {
-            /** @var DataObject\ClassDefinition $classDefinition */
-            $classDefinition = $object->getClass();
-            $className = $classDefinition->getName();
-
-            if ($addFields) {
-                $fieldDefinitions = $classDefinition->getFieldDefinitions();
-                $this->processFieldDefinitions($fieldDefinitions, $object, $objectData);
-            }
-        }
-
-        $childDataList = [];
-
-        if ($useRecursion) {
-            $children = $object->getChildren();
-            foreach ($children as $child) {
-                $childData = $this->exportObject($child);
-                if (!array_key_exists($childData['_attributes']['class'], $childDataList)) {
-                    $childDataList[$childData['_attributes']['class']] = [];
+                    foreach ($fieldDefinition->getAllowedTypes() as $allowedType) {
+                        array_push($allowedTypes, $allowedType);
+                    }
+                    $fields = [
+                        $fieldDefinition->getName() => $allowedTypes,
+                    ];
                 }
-                $childDataList[$childData['_attributes']['class']][] = $childData;
+                array_push($data, $fields);
             }
         }
 
-        $variantDataList = [];
-
-        if ($includeVariants) {
-            $children = $object->getChildren([DataObject\AbstractObject::OBJECT_TYPE_VARIANT]);
-            foreach ($children as $child) {
-                $childData = $this->exportObject($child);
-                if (!array_key_exists($childData['_attributes']['class'], $variantDataList)) {
-                    $variantDataList[$childData['_attributes']['class']] = [];
-                }
-                $variantDataList[$childData['_attributes']['class']][] = $childData;
-            }
-        }
-
-
-        if ($childDataList !== []) {
-            $objectData['pc:children'] = $childDataList;
-        }
-
-        if ($variantDataList !== []) {
-            $objectData['pc:variants'] = $variantDataList;
-        }
-
-
-        $objectData['_attributes'] = [
-            'id' => $object->getId(),
-            'parentId' => $object->getParentId(),
-            'type' => $object->getType(),
-            'key' => $object->getKey(),
-            'class' => $className,
-            'relatedClasses' => $this->getRelatedClasses($object),
-            'is-variant-leaf' => (($object->getType() === 'variant') && (count(
-                    $variantDataList
-                ) === 0) ? 'true' : 'false'),
-            'is-object-leaf' => (($object->getType() === 'object') && (count($childDataList) === 0) ? 'true' : 'false'),
-        ];
-
-        return $objectData;
+        return $data;
     }
 
-    /**
-     * If fieldtype is one of type Relation then extract the class name in the classes array of the
-     * fieldDefinitions Data
-     */
-    private function getRelatedClasses($object): array
+    private function getRelatedClasses($fieldDefinitions): array
     {
-        $objectVars = $object->getObjectVar('o_class');
-        $fieldDefinitions = $objectVars->getFieldDefinitions();
-
         $relatedClasses = [];
 
         /** @var DataObject\ClassDefinition\Data $fieldDefinition */
@@ -141,33 +112,75 @@ class CreateERDiagramXMLExportCommand extends Command
         return $relatedClasses;
     }
 
-    private function processFieldDefinitions($fieldDefinitions, $object, &$objectData): void
+    private function getRelatedFieldCollections($fieldDefinitions): array
     {
-        /** @var DataObject\ClassDefinition\Data $fieldDefinition */
+        $data = [];
+
         foreach ($fieldDefinitions as $fieldDefinition) {
-            $fieldName = $fieldDefinition->getName();
-            $fieldType = $fieldDefinition->getFieldtype();
-
-
-            $getterFunction = 'getForType' . ucfirst($fieldType);
-
-            if (method_exists($this, $getterFunction)) {
-                $objectData[$fieldName] = $this->$getterFunction($object, $fieldName);
-            } elseif ($fieldType === 'localizedfields') {
-                $localizedFields = $fieldDefinition->getFieldDefinitions();
-                foreach (\Pimcore\Tool::getValidLanguages() as $language) {
-                    $this->language = $language;
-                    $this->processFieldDefinitions($localizedFields, $object, $objectData[$fieldName][$language]);
+            if ($fieldDefinition instanceof FieldCollections) {
+                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
+                    array_push($data, $name);
                 }
-                $this->language = null;
-            } else {
-                $objectData[$fieldName] = [
-                    '_attributes' => [
-                        'skipped' => 'true',
-                        'fieldtype' => $fieldType,
-                    ],
-                ];
             }
+
         }
+
+        return $data;
+    }
+
+    private function getRelatedObjectBricks($fieldDefinitions): array
+    {
+        $data = [];
+
+        foreach ($fieldDefinitions as $fieldDefinition) {
+            if ($fieldDefinition instanceof ObjectBricks) {
+                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
+                    array_push($data, $name);
+                }
+            }
+
+        }
+
+        return $data;
+    }
+
+    private function getFieldCollectionsData(): array
+    {
+        $fieldCollectionData = [];
+
+        $fieldCollectionListing = new FieldCollectionListing();
+        $fieldCollections = $fieldCollectionListing->load();
+
+        foreach ($fieldCollections as $fieldCollection) {
+            $data['fieldCollection'] = [
+
+                'name' => $fieldCollection->getKey(),
+                'fields' => $this->processFieldDefinitions($fieldCollection->getFieldDefinitions()),
+
+            ];
+            array_push($fieldCollectionData, $data);
+        }
+
+        return $fieldCollectionData;
+    }
+
+    private function getObjectBricksData(): array
+    {
+        $objectBricksData = [];
+
+        $objectBricksListing = new ObjectBrickListing();
+        $objectBricks = $objectBricksListing->load();
+
+        foreach ($objectBricks as $objectBrick) {
+            $data['objectBrick'] = [
+
+                'name' => $objectBrick->getKey(),
+                'fields' => $this->processFieldDefinitions($objectBrick->getFieldDefinitions()),
+
+            ];
+            array_push($objectBricksData, $data);
+        }
+
+        return $objectBricksData;
     }
 }
