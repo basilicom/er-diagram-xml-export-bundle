@@ -72,19 +72,19 @@ class GraphMLWriter
             if (!empty($relatedClasses)) {
                 foreach ($relatedClasses as $class) {
                     foreach ($class as $relationType => $className) {
-                        $this->createEdge($parentClass, $className, $relationType);
+                        $this->createEdge($parentClass, $className, $relationType, $className);
                     }
                 }
             }
             if (!empty($relatedFieldCollections)) {
-                foreach ($relatedFieldCollections as $relatedFieldCollection => $name) {
-                    $this->createEdge($parentClass, $name, 'onetomany');
+                foreach ($relatedFieldCollections as $relatedFieldCollection => $fieldCollectionName) {
+                    $this->createEdge($parentClass, $fieldCollectionName, 'onetomany', $fieldCollectionName);
                 }
             }
 
             if (!empty($relatedObjectBricks)) {
-                foreach ($relatedObjectBricks as $relatedObjectBrick => $name) {
-                    $this->createEdge($parentClass, $name, '');
+                foreach ($relatedObjectBricks as $relatedObjectBrick => $objectBrickName) {
+                    $this->createEdge($parentClass, $objectBrickName, '', $objectBrickName);
                 }
             }
         }
@@ -115,7 +115,6 @@ class GraphMLWriter
         }
 
         $attributes = $this->createAttributes($entry);
-        dump($this->actualBoxWidth);
 
         /*
          * Sadly i cant use Spatie\ArrayToXml\ArrayToXml here because it's not possible to set an array for the _value
@@ -204,7 +203,7 @@ class GraphMLWriter
         }
     }
 
-    private function createEdge($source, $target, $relationType = '')
+    private function createEdge($source, $target, $relationType = '', $labelName)
     {
         if (strpos(strtolower($relationType), 'manytomany') !== false) {
             $sourceArrowType = 'crows_foot_many';
@@ -227,12 +226,22 @@ class GraphMLWriter
         <edge id='%s' source='%s' target='%s'>
             <data key='edgegraphics'>
                  <y:PolyLineEdge>
-                           <y:Arrows source='%s' target='%s'/>
+                    <y:Arrows source='%s' target='%s'/>
+                    <y:EdgeLabel alignment='center' configuration='AutoFlippingLabel' distance='2.0' horizontalTextPosition='center'  modelName='custom' preferredPlacement='center_on_edge' ratio='0.5' verticalTextPosition='bottom' >%s
+                        <y:LabelModel>
+                            <y:RotatedDiscreteEdgeLabelModel angle='0.0' autoRotationEnabled='true'/>
+                        </y:LabelModel>
+                        <y:ModelParameter>
+                            <y:RotatedDiscreteEdgeLabelModelParameter position='tail'/>
+                        </y:ModelParameter>
+                        <y:PreferredPlacementDescriptor angle='0.0' angleOffsetOnRightSide='0' angleReference='absolute' angleRotationOnRightSide='co' distance='-1.0' placement='center' side='on_edge' sideReference='relative_to_edge_flow'/>
+                    </y:EdgeLabel>
                  </y:PolyLineEdge>
             </data>
         </edge>";
 
-        $edgeContent = sprintf($edgeContent, $this->actualEdgeId, $source, $target, $sourceArrowType, $targetArrowType);
+        $edgeContent = sprintf($edgeContent, $this->actualEdgeId, $source, $target, $sourceArrowType,
+                               $targetArrowType, $labelName);
         $this->actualEdgeId += 1;
 
         $this->xmlOutput .= $edgeContent;
