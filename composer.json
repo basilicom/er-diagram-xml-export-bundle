@@ -14,7 +14,7 @@
       "name": "Hendrik Hofmann",
       "email": "hendrik.hofmann@basilicom.de",
       "role": "Developer"
-    },
+    }
   ],
   "autoload": {
     "psr-4": {
