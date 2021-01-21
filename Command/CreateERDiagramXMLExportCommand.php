@@ -1,7 +1,7 @@
 <?php
 
 
-namespace ERDiagramXMLExportBundle\Command;
+namespace Basilicom\ERDiagramXMLExportBundle\Command ;
 
 use Pimcore\Model\DataObject;
 use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;

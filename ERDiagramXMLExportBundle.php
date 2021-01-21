@@ -1,6 +1,6 @@
 <?php
 
-namespace ERDiagramXMLExportBundle\Command;
+namespace Basilicom\ERDiagramXMLExportBundle;
 
 use Symfony\Component\HttpKernel\Bundle\Bundle;
 

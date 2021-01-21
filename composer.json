@@ -1,0 +1,24 @@
+{
+  "name": "basilicom/yed-er-diagram-bundle",
+  "description": "This bundle creates a yed compliant XML of the Pimcore class structure",
+  "keywords": ["yed","xml","er diagram"],
+  "require": {
+    "php": ">=7.3.0",
+    "ext-json": "*",
+    "symfony/console": "*",
+    "spatie/array-to-xml": "^2.16"
+  },
+  "license": "MIT",
+  "authors": [
+    {
+      "name": "Hendrik Hofmann",
+      "email": "hendrik.hofmann@basilicom.de",
+      "role": "Developer"
+    },
+  ],
+  "autoload": {
+    "psr-4": {
+      "Basilicom\\YedERDiagramBundle\\": "YedERDiagramBundle"
+    }
+  }
+}

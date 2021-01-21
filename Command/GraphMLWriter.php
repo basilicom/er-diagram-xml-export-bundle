@@ -1,7 +1,7 @@
 <?php
 
 
-namespace ERDiagramXMLExportBundle\Command;
+namespace Basilicom\ERDiagramXMLExportBundle\Command;
 
 use Spatie\ArrayToXml\ArrayToXml;
 
