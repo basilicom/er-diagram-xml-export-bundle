@@ -3,7 +3,7 @@
   "description": "This bundle creates a yed compliant XML of the Pimcore class structure",
   "keywords": ["yed","xml","er diagram"],
   "require": {
-    "php": ">=7.3",
+    "php": ">=8.0",
     "ext-json": "*",
     "symfony/console": "*",
     "spatie/array-to-xml": "^2.16"
