@@ -13,8 +13,10 @@ use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
+use Pimcore\Console\AbstractCommand;
 
-class CreateERDiagramXMLExportCommand extends Command
+
+class CreateERDiagramXMLExportCommand extends AbstractCommand
 {
     protected static $defaultName = 'basilicom:create-er-diagram-xml-export';
 
