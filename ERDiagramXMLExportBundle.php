@@ -2,9 +2,9 @@
 
 namespace Basilicom\ERDiagramXMLExportBundle;
 
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Pimcore\Extension\Bundle\AbstractPimcoreBundle;
 
-class ERDiagramXMLExportBundle extends Bundle
+class ERDiagramXMLExportBundle extends AbstractPimcoreBundle
 {
 
 }
