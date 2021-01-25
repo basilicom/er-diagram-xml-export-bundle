@@ -1,5 +1,5 @@
 {
-  "name": "basilicom/ERDiagramXMLExportBundle",
+  "name": "basilicom/er-diagram-xml-export-bundle",
   "description": "This bundle creates a yed compliant XML of the Pimcore class structure",
   "keywords": ["yed","xml","er diagram"],
   "type": "pimcore-bundle",
