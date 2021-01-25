@@ -2,9 +2,15 @@
 
 namespace Basilicom\ERDiagramXMLExportBundle;
 
-use Symfony\Component\HttpKernel\Bundle\Bundle;
+use Pimcore\Extension\Bundle\AbstractPimcoreBundle;
 
-class ERDiagramXMLExportBundle extends Bundle
+class ERDiagramXMLExportBundle extends AbstractPimcoreBundle
 {
-
+    /**
+     * @inheritDoc
+     */
+    public function getDescription()
+    {
+        return 'Provides an YED Compliant XML Represantation of the Pimcore Class Structure';
+    }
 }
