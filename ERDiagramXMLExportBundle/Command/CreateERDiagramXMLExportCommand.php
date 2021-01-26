@@ -9,11 +9,12 @@ use Pimcore\Model\DataObject\ClassDefinition\Data\Objectbricks as ObjectBricks;
 use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
 use Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
 use Pimcore\Model\DataObject\Objectbrick\Definition\Listing as ObjectBrickListing;
-use Symfony\Component\Console\Command\Command;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Pimcore\Console\AbstractCommand;
+use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\GraphMLWriter;
+
 
 
 class CreateERDiagramXMLExportCommand extends AbstractCommand
