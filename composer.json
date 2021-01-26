@@ -7,7 +7,8 @@
     "php": ">=7.4",
     "ext-json": "*",
     "symfony/console": "*",
-    "spatie/array-to-xml": "^2.16"
+    "spatie/array-to-xml": "^2.16",
+    "pimcore/pimcore": ">=5.0 <7.0"
   },
   "license": "MIT",
   "authors": [
@@ -19,7 +20,7 @@
   ],
   "autoload": {
     "psr-4": {
-      "Basilicom\\ERDiagramXMLExportBundle\\": "/ERDiagramXMLExportBundle"
+      "Basilicom\\ERDiagramXMLExportBundle\\": "./ERDiagramXMLExportBundle"
     }
   }
 }
