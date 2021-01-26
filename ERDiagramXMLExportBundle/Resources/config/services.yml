@@ -1,5 +1,5 @@
 services:
-    Basilicom\ERDiagramExportBundle\Command\:
+    Basilicom\ERDiagramXMLExportBundle\Command\:
         resource: '../../Command'
         public: true
         tags: ['console.command']
