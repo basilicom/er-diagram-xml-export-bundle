@@ -155,7 +155,7 @@ class GraphMLWriter
         $attributesString = '';
 
         if (!empty($fields)) {
-            $this->actualBoxHeight = 40 + count($fields) * 30;
+            $this->actualBoxHeight = 70 + count($fields) * 15;
 
             foreach ($fields as $field) {
                 foreach ($field as $fieldname => $fieldtype) {
@@ -171,7 +171,7 @@ class GraphMLWriter
                         $allowedTypes = substr($allowedTypes, 0, -3);
                         $attributesString .= $fieldname . ': ' . $allowedTypes . PHP_EOL;
                     }
-                    $this->actualBoxWidth = 120 + strlen($attributesString);
+                    $this->actualBoxWidth = 250 + strlen($fieldname);
                 }
             }
         }
@@ -201,14 +201,6 @@ class GraphMLWriter
         $arrayToXml = new ArrayToXml($attributes, $rootElement);
 
         return $arrayToXml->dropXmlDeclaration()->prettify()->toXml();
-    }
-
-    private function calculateBoxWidth($attributesString)
-    {
-        $newSize = 120 + strlen($attributesString);
-        if ($newSize > $this->actualBoxWidth) {
-            $this->actualBoxWidth = $newSize;
-        }
     }
 
     private function createEdge($source, $target, $relationType = '', $labelName)
