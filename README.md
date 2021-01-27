@@ -1,7 +1,12 @@
 # ERDiagramXMLExportBundle
 
-### Installation
-Check `Resources/config/services.yaml` for example configuration.
+### Prerequisites and General Information
+
+This Pimcore-Bundle will create an yEd compliant XML File to represent the Entity Relationship of Pimcore Classes, 
+ObjectBricks and FieldCollections.  
+Just open the generated file with the yEd Graph Editor, which you can find here:
+`https://www.yworks.com/products/yed/download`.  
+After opening the file you should use the `Layout` Tab in the Graph Editor to arrange the rendered Graphics according your needs.
 
 ### Usage
 ```
@@ -9,8 +14,9 @@ bin/console basilicom::create-er-diagram-xml-export
 bin/console basilicom::create-er-diagram-xml-export <filename>
 ```
 
-If you use the Command without providing an output-filename the resulting xml-Data will be saved in `output.graphml` 
-#### Symfony 4.x Configuration 
+The generated file will be saved in the `\var\tmp\` Folder with filename`output.graphml` .  
+You can also provide your own filename.
+#### Pimcore Configuration 
 Make sure to enable the Bundle in `app/config/bundles.php`, e.g. 
 
 ```
@@ -19,8 +25,7 @@ return [
 ];
 ```
 
-#### Symfony 3.x Configuration
-Same as above, but the bundle must be added to BundleCollection in `AppKernel.php`, e.g. 
+and add it to BundleCollection in `AppKernel.php`, e.g. 
 
 ```
 ...

@@ -19,14 +19,17 @@ class GraphMLWriter
     /**
      * GraphMLWriter constructor.
      *
-     * @param array $classDefinitions
-     * @param array $fieldCollections
-     * @param array $objectBricks
+     * @param array   $classDefinitions
+     * @param array   $fieldCollections
+     * @param array   $objectBricks
      * @param ?string $filename
      */
-    public function __construct(array $classDefinitions, array $fieldCollections, array $objectBricks, ?string
-    $filename = null)
-    {
+    public function __construct(
+        array $classDefinitions,
+        array $fieldCollections,
+        array $objectBricks,
+        ?string $filename = null
+    ) {
         $this->classDefinitions = $classDefinitions;
         $this->fieldCollections = $fieldCollections;
         $this->objectBricks = $objectBricks;
@@ -47,15 +50,15 @@ class GraphMLWriter
     private function createHeader()
     {
         $this->xmlOutput .= "<?xml version='1.0' encoding='UTF-8' standalone='no'?>
-    <graphml  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
-              xmlns:y='http://www.yworks.com/xml/graphml' 
-              xsi:schemaLocation='http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd'
-    >
-    <key for='node' id='nodegraphics' yfiles.type='nodegraphics'/>
-    <key for='graphml' id='resources' yfiles.type='resources'/>
-    <key for='edge' id='edgegraphics' yfiles.type='edgegraphics'/>
-      <graph edgedefault='directed' id='G'>
-    ";
+        <graphml  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
+                  xmlns:y='http://www.yworks.com/xml/graphml' 
+                  xsi:schemaLocation='http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd'
+        >
+        <key for='node' id='nodegraphics' yfiles.type='nodegraphics'/>
+        <key for='graphml' id='resources' yfiles.type='resources'/>
+        <key for='edge' id='edgegraphics' yfiles.type='edgegraphics'/>
+          <graph edgedefault='directed' id='G'>
+        ";
     }
 
     private function createNodesAndEdges()
@@ -133,8 +136,15 @@ class GraphMLWriter
         </node>';
 
 
-        $nodeContent = sprintf($nodeContent, $className, $this->actualBoxHeight, $this->actualBoxWidth, $fillColor,
-                               $className, $attributes);
+        $nodeContent = sprintf(
+            $nodeContent,
+            $className,
+            $this->actualBoxHeight,
+            $this->actualBoxWidth,
+            $fillColor,
+            $className,
+            $attributes
+        );
 
         $this->xmlOutput .= $nodeContent;
     }
@@ -151,7 +161,6 @@ class GraphMLWriter
                 foreach ($field as $fieldname => $fieldtype) {
                     if (!is_array($fieldtype)) {
                         $attributesString .= $fieldname . ': ' . $fieldtype . PHP_EOL;
-
                     }
                     if (is_array($fieldtype)) {
                         $allowedTypes = '';
@@ -166,7 +175,6 @@ class GraphMLWriter
                 }
             }
         }
-
 
         $rootElement = [
             'rootElementName' => 'y:NodeLabel',
@@ -195,8 +203,8 @@ class GraphMLWriter
         return $arrayToXml->dropXmlDeclaration()->prettify()->toXml();
     }
 
-    private function calculateBoxWidth($attributesString) {
-
+    private function calculateBoxWidth($attributesString)
+    {
         $newSize = 120 + strlen($attributesString);
         if ($newSize > $this->actualBoxWidth) {
             $this->actualBoxWidth = $newSize;
@@ -240,8 +248,15 @@ class GraphMLWriter
             </data>
         </edge>";
 
-        $edgeContent = sprintf($edgeContent, $this->actualEdgeId, $source, $target, $sourceArrowType,
-                               $targetArrowType, $labelName);
+        $edgeContent = sprintf(
+            $edgeContent,
+            $this->actualEdgeId,
+            $source,
+            $target,
+            $sourceArrowType,
+            $targetArrowType,
+            $labelName
+        );
         $this->actualEdgeId += 1;
 
         $this->xmlOutput .= $edgeContent;
@@ -250,21 +265,24 @@ class GraphMLWriter
 
     private function writeToFile()
     {
+        $dirname = dirname(__DIR__, 5) . '/var/tmp/';
+
         if (empty($this->filename)) {
-            $file = __DIR__ . '/' . 'output.graphml';
+            $file = $dirname . 'output.graphml';
+        } else {
+            $file = $dirname . $this->filename . '.graphml';
         }
-        else $file = __DIR__ . '/' . $this->filename . '.graphml';
+
         file_put_contents($file, $this->xmlOutput);
     }
 
     private function createFooter()
     {
         $this->xmlOutput .= "
-    </graph>
-  <data key='resources'>
-    <y:Resources/>
-  </data>
-</graphml>";
+        </graph>
+            <data key='resources'>
+                <y:Resources/>
+            </data>
+        </graphml>";
     }
-
 }
