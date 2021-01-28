@@ -39,13 +39,10 @@ class GraphMLWriter
     public function output()
     {
         $this->createHeader();
-
         $this->createNodesAndEdges();
-
         $this->createFooter();
         $this->writeToFile();
     }
-
 
     private function createHeader()
     {
@@ -105,7 +102,6 @@ class GraphMLWriter
         }
     }
 
-
     private function createNode(array $entry, bool $isFieldCollection = false, bool $isObjecktBrick = false)
     {
         $className = $entry['name'];
@@ -134,7 +130,6 @@ class GraphMLWriter
             </y:GenericNode>
           </data>
         </node>';
-
 
         $nodeContent = sprintf(
             $nodeContent,
@@ -253,7 +248,6 @@ class GraphMLWriter
 
         $this->xmlOutput .= $edgeContent;
     }
-
 
     private function writeToFile()
     {

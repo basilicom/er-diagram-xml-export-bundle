@@ -1,6 +1,5 @@
 <?php
 
-
 namespace Basilicom\ERDiagramXMLExportBundle\Command ;
 
 use Pimcore\Model\DataObject;
@@ -14,8 +13,6 @@ use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Pimcore\Console\AbstractCommand;
 use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\GraphMLWriter;
-
-
 
 class CreateERDiagramXMLExportCommand extends AbstractCommand
 {
@@ -63,7 +60,6 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
             array_push($classDefinitionData, $data);
         }
-
 
         return $classDefinitionData;
     }
@@ -125,7 +121,6 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
                     array_push($data, $name);
                 }
             }
-
         }
 
         return $data;
@@ -141,7 +136,6 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
                     array_push($data, $name);
                 }
             }
-
         }
 
         return $data;
