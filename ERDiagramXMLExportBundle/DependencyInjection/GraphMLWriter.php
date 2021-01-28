@@ -3,6 +3,7 @@
 
 namespace Basilicom\ERDiagramXMLExportBundle\DependencyInjection;
 
+use phpDocumentor\Reflection\Types\Self_;
 use Spatie\ArrayToXml\ArrayToXml;
 
 class GraphMLWriter
@@ -15,6 +16,9 @@ class GraphMLWriter
     private int $actualEdgeId = 0;
     private int $actualBoxHeight = 0;
     private int $actualBoxWidth = 0;
+
+    private const CROWS_FOOT_MANY = 'crows_foot_many';
+    private const NONE = 'none';
 
     /**
      * GraphMLWriter constructor.
@@ -125,7 +129,10 @@ class GraphMLWriter
             <y:GenericNode configuration="com.yworks.entityRelationship.big_entity">
               <y:Geometry height="%d" width="%d" />
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s" configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" visible="true"  >%s</y:NodeLabel>
+              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s" 
+                           configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" 
+                           modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" 
+                           visible="true"  >%s</y:NodeLabel>
               %s
             </y:GenericNode>
           </data>
@@ -201,20 +208,20 @@ class GraphMLWriter
     private function createEdge($source, $target, $relationType = '', $labelName)
     {
         if (strpos(strtolower($relationType), 'manytomany') !== false) {
-            $sourceArrowType = 'crows_foot_many';
-            $targetArrowType = 'crows_foot_many';
+            $sourceArrowType = self::CROWS_FOOT_MANY;
+            $targetArrowType = self::CROWS_FOOT_MANY;
         }
         if (strpos(strtolower($relationType), 'onetomany') !== false) {
-            $sourceArrowType = 'none';
-            $targetArrowType = 'crows_foot_many';
+            $sourceArrowType = self::NONE;
+            $targetArrowType = self::CROWS_FOOT_MANY;
         }
         if (strpos(strtolower($relationType), 'manytoone') !== false) {
-            $sourceArrowType = 'crows_foot_many';
-            $targetArrowType = 'none';
+            $sourceArrowType = self::CROWS_FOOT_MANY;
+            $targetArrowType = self::NONE;
         }
         if ($relationType == '') {
-            $sourceArrowType = 'none';
-            $targetArrowType = 'none';
+            $sourceArrowType = self::NONE;
+            $targetArrowType = self::NONE;
         }
 
         $edgeContent = "
@@ -222,14 +229,19 @@ class GraphMLWriter
             <data key='edgegraphics'>
                  <y:PolyLineEdge>
                     <y:Arrows source='%s' target='%s'/>
-                    <y:EdgeLabel alignment='center' configuration='AutoFlippingLabel' distance='2.0' horizontalTextPosition='center'  modelName='custom' preferredPlacement='center_on_edge' ratio='0.5' verticalTextPosition='bottom' >%s
+                    <y:EdgeLabel alignment='center' configuration='AutoFlippingLabel' distance='2.0' 
+                                 horizontalTextPosition='center'  modelName='custom' preferredPlacement='center_on_edge' 
+                                 ratio='0.5' verticalTextPosition='bottom' >%s
                         <y:LabelModel>
                             <y:RotatedDiscreteEdgeLabelModel angle='0.0' autoRotationEnabled='true'/>
                         </y:LabelModel>
                         <y:ModelParameter>
                             <y:RotatedDiscreteEdgeLabelModelParameter position='tail'/>
                         </y:ModelParameter>
-                        <y:PreferredPlacementDescriptor angle='0.0' angleOffsetOnRightSide='0' angleReference='absolute' angleRotationOnRightSide='co' distance='-1.0' placement='center' side='on_edge' sideReference='relative_to_edge_flow'/>
+                        <y:PreferredPlacementDescriptor 
+                            angle='0.0' angleOffsetOnRightSide='0' angleReference='absolute' 
+                            angleRotationOnRightSide='co' distance='-1.0' placement='center' side='on_edge' 
+                            sideReference='relative_to_edge_flow'/>
                     </y:EdgeLabel>
                  </y:PolyLineEdge>
             </data>
