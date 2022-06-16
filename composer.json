@@ -1,7 +1,7 @@
 {
   "name": "basilicom/er-diagram-xml-export-bundle",
-  "description": "This bundle creates a yed compliant XML of the Pimcore class structure",
-  "keywords": ["yed","xml","er diagram"],
+  "description": "This bundle creates an XML of the Pimcore class structure for diagrams.net",
+  "keywords": ["diagrams.net","yEd","xml","er diagram","documentation","pimcore"],
   "type": "pimcore-bundle",
   "require": {
     "php": ">=7.4",
@@ -15,6 +15,11 @@
     {
       "name": "Hendrik Hofmann",
       "email": "hendrik.hofmann@basilicom.de",
+      "role": "Developer"
+    },
+    {
+      "name": "Steen Helmdach",
+      "email": "steen.helmdach@basilicom.de",
       "role": "Developer"
     }
   ],

@@ -1,18 +1,16 @@
 <?php
 
-namespace Basilicom\ERDiagramXMLExportBundle\Command ;
+namespace Basilicom\ERDiagramXMLExportBundle\Command;
 
-use Pimcore\Model\DataObject;
-use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;
-use Pimcore\Model\DataObject\ClassDefinition\Data\Objectbricks as ObjectBricks;
-use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
-use Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
-use Pimcore\Model\DataObject\Objectbrick\Definition\Listing as ObjectBrickListing;
+use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\DiagramsPimcoreDefinitionsRepository;
+use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\DiagramsXmlGenerator;
+use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\YedPimcoreDefinitionsRepository;
+use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\YedXmlGenerator;
+use Exception;
 use Symfony\Component\Console\Input\InputArgument;
 use Symfony\Component\Console\Input\InputInterface;
 use Symfony\Component\Console\Output\OutputInterface;
 use Pimcore\Console\AbstractCommand;
-use Basilicom\ERDiagramXMLExportBundle\DependencyInjection\GraphMLWriter;
 
 class CreateERDiagramXMLExportCommand extends AbstractCommand
 {
@@ -20,164 +18,67 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
     protected function configure()
     {
-        $this->setDescription('Provides an yEd-XML Output to visualize ER of Pimcore Classes');
+        $this->setDescription('Provides an ER-Diagram of Pimcore Classes in XML format for diagrams.net or yEd');
+        $this->addArgument('format', InputArgument::REQUIRED, 'diagrams | yed');
         $this->addArgument('filename', InputArgument::OPTIONAL, 'Provide a filename');
     }
 
-    public function execute(InputInterface $input, OutputInterface $output)
+    /**
+     * @throws Exception
+     */
+    public function execute(InputInterface $input, OutputInterface $output): int
     {
-        $result = new GraphMLWriter(
-            $this->getClassDefinitionData(),
-            $this->getFieldCollectionsData(),
-            $this->getObjectBricksData(),
-            $input->getArgument('filename') ?: ''
+        $outputType = strtolower($input->getArgument('format'));
+        switch ($outputType) {
+            case 'diagrams':
+                $pimcoreDefinitionsRepository = new DiagramsPimcoreDefinitionsRepository();
+                $xmlGenerator = new DiagramsXmlGenerator(
+                    $pimcoreDefinitionsRepository->getClassDefinitionData(),
+                    $pimcoreDefinitionsRepository->getFieldCollectionsData(),
+                    $pimcoreDefinitionsRepository->getObjectBricksData(),
+                );
+                break;
 
-        );
-        $result->output();
+            case 'yed':
+                $pimcoreDefinitionsRepository = new YedPimcoreDefinitionsRepository();
+                $xmlGenerator = new YedXmlGenerator(
+                    $pimcoreDefinitionsRepository->getClassDefinitionData(),
+                    $pimcoreDefinitionsRepository->getFieldCollectionsData(),
+                    $pimcoreDefinitionsRepository->getObjectBricksData(),
+                );
+                break;
+
+            default:
+                throw new Exception('Invalid format: "' . $outputType . '". Valid: diagrams | yed');
+        }
+
+        $xml = $xmlGenerator->generate();
+        $this->writeToFile($input->getArgument('filename') ?: '', $xml);
 
         return 0;
     }
 
-    private function getClassDefinitionData(): array
+    /**
+     * @throws Exception
+     */
+    public function writeToFile(string $fileName, string $fileContent): void
     {
-        $listing = new ClassDefinitionListing();
-        $classDefinitions = $listing->load();
+        $dirname = dirname(__DIR__, 5) . '/var/tmp/';
 
-        $classDefinitionData = [];
-
-        foreach ($classDefinitions as $classDefinition) {
-            $fieldDefinitions = $classDefinition->getFieldDefinitions();
-
-
-            $data = [
-                'id' => $classDefinition->getId(),
-                'name' => $classDefinition->getName(),
-                'fields' => $this->processFieldDefinitions($fieldDefinitions),
-                'relatedClasses' => $this->getRelatedClasses($fieldDefinitions),
-                'relatedFieldCollections' => $this->getRelatedFieldCollections($fieldDefinitions),
-                'relatedObjectBricks' => $this->getRelatedObjectBricks($fieldDefinitions),
-            ];
-
-            array_push($classDefinitionData, $data);
+        if (!is_dir($dirname)) {
+            $dirname = './var/tmp/';
         }
 
-        return $classDefinitionData;
-    }
-
-    private function processFieldDefinitions($fieldDefinitions): array
-    {
-        $data = [];
-
-        /** @var DataObject\ClassDefinition\Data $fieldDefinition */
-        foreach ($fieldDefinitions as $fieldDefinition) {
-            $fieldType = $fieldDefinition->getFieldtype();
-
-            if (strpos($fieldType, 'Relation') == false) {
-                $fields = [
-                    $fieldDefinition->getName() => $fieldType,
-                ];
-                if ($fieldDefinition instanceof FieldCollections) {
-                    $allowedTypes = [];
-
-                    foreach ($fieldDefinition->getAllowedTypes() as $allowedType) {
-                        array_push($allowedTypes, $allowedType);
-                    }
-                    $fields = [
-                        $fieldDefinition->getName() => $allowedTypes,
-                    ];
-                }
-                array_push($data, $fields);
-            }
+        if (!is_dir($dirname)) {
+            throw new Exception('"' . $dirname . '" generate path does not exist!');
         }
 
-        return $data;
-    }
-
-    private function getRelatedClasses($fieldDefinitions): array
-    {
-        $relatedClasses = [];
-
-        /** @var DataObject\ClassDefinition\Data $fieldDefinition */
-        foreach ($fieldDefinitions as $fieldDefinition) {
-            $fieldType = $fieldDefinition->getFieldtype();
-
-            if (strpos($fieldType, 'Relation') !== false) {
-                foreach ($fieldDefinition->getClasses() as $class) {
-                    array_push($relatedClasses, [$fieldType => $class['classes']]);
-                }
-            }
+        if (empty($fileName)) {
+            $file = $dirname . 'PimcoreClassDiagram.xml';
+        } else {
+            $file = $dirname . $fileName . '.xml';
         }
 
-        return $relatedClasses;
-    }
-
-    private function getRelatedFieldCollections($fieldDefinitions): array
-    {
-        $data = [];
-
-        foreach ($fieldDefinitions as $fieldDefinition) {
-            if ($fieldDefinition instanceof FieldCollections) {
-                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
-                    array_push($data, $name);
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    private function getRelatedObjectBricks($fieldDefinitions): array
-    {
-        $data = [];
-
-        foreach ($fieldDefinitions as $fieldDefinition) {
-            if ($fieldDefinition instanceof ObjectBricks) {
-                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
-                    array_push($data, $name);
-                }
-            }
-        }
-
-        return $data;
-    }
-
-    private function getFieldCollectionsData(): array
-    {
-        $fieldCollectionData = [];
-
-        $fieldCollectionListing = new FieldCollectionListing();
-        $fieldCollections = $fieldCollectionListing->load();
-
-        foreach ($fieldCollections as $fieldCollection) {
-            $data['fieldCollection'] = [
-
-                'name' => $fieldCollection->getKey(),
-                'fields' => $this->processFieldDefinitions($fieldCollection->getFieldDefinitions()),
-
-            ];
-            array_push($fieldCollectionData, $data);
-        }
-
-        return $fieldCollectionData;
-    }
-
-    private function getObjectBricksData(): array
-    {
-        $objectBricksData = [];
-
-        $objectBricksListing = new ObjectBrickListing();
-        $objectBricks = $objectBricksListing->load();
-
-        foreach ($objectBricks as $objectBrick) {
-            $data['objectBrick'] = [
-
-                'name' => $objectBrick->getKey(),
-                'fields' => $this->processFieldDefinitions($objectBrick->getFieldDefinitions()),
-
-            ];
-            array_push($objectBricksData, $data);
-        }
-
-        return $objectBricksData;
+        file_put_contents($file, $fileContent);
     }
 }
