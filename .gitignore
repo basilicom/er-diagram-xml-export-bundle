@@ -1,3 +1,4 @@
-*.graphml
+*.xml
 .idea
 vendor
+.DS_Store

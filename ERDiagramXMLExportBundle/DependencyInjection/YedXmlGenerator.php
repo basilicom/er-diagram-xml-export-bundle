@@ -1,18 +1,16 @@
 <?php
 
-
 namespace Basilicom\ERDiagramXMLExportBundle\DependencyInjection;
 
-use phpDocumentor\Reflection\Types\Self_;
+
 use Spatie\ArrayToXml\ArrayToXml;
 
-class GraphMLWriter
+class YedXmlGenerator
 {
     private array $classDefinitions;
     private array $fieldCollections;
     private array $objectBricks;
     private string $xmlOutput = '';
-    private ?string $filename;
     private int $actualEdgeId = 0;
     private int $actualBoxHeight = 0;
     private int $actualBoxWidth = 0;
@@ -23,36 +21,33 @@ class GraphMLWriter
     /**
      * GraphMLWriter constructor.
      *
-     * @param array   $classDefinitions
-     * @param array   $fieldCollections
-     * @param array   $objectBricks
-     * @param ?string $filename
+     * @param array $classDefinitions
+     * @param array $fieldCollections
+     * @param array $objectBricks
      */
     public function __construct(
         array $classDefinitions,
         array $fieldCollections,
         array $objectBricks,
-        ?string $filename = null
     ) {
         $this->classDefinitions = $classDefinitions;
         $this->fieldCollections = $fieldCollections;
         $this->objectBricks = $objectBricks;
-        $this->filename = $filename;
     }
 
-    public function output()
+    public function generate(): string
     {
         $this->createHeader();
         $this->createNodesAndEdges();
         $this->createFooter();
-        $this->writeToFile();
+        return $this->xmlOutput;
     }
 
-    private function createHeader()
+    private function createHeader(): void
     {
         $this->xmlOutput .= "<?xml version='1.0' encoding='UTF-8' standalone='no'?>
-        <graphml  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance' 
-                  xmlns:y='http://www.yworks.com/xml/graphml' 
+        <graphml  xmlns:xsi='http://www.w3.org/2001/XMLSchema-instance'
+                  xmlns:y='http://www.yworks.com/xml/graphml'
                   xsi:schemaLocation='http://graphml.graphdrawing.org/xmlns http://www.yworks.com/xml/schema/graphml/1.1/ygraphml.xsd'
         >
         <key for='node' id='nodegraphics' yfiles.type='nodegraphics'/>
@@ -62,7 +57,7 @@ class GraphMLWriter
         ";
     }
 
-    private function createNodesAndEdges()
+    private function createNodesAndEdges(): void
     {
         foreach ($this->classDefinitions as $classDefinition) {
             $this->createNode($classDefinition);
@@ -76,19 +71,19 @@ class GraphMLWriter
             if (!empty($relatedClasses)) {
                 foreach ($relatedClasses as $class) {
                     foreach ($class as $relationType => $className) {
-                        $this->createEdge($parentClass, $className, $relationType, $className);
+                        $this->createEdge($parentClass, $className, $className,  $relationType);
                     }
                 }
             }
             if (!empty($relatedFieldCollections)) {
-                foreach ($relatedFieldCollections as $relatedFieldCollection => $fieldCollectionName) {
-                    $this->createEdge($parentClass, $fieldCollectionName, 'onetomany', $fieldCollectionName);
+                foreach ($relatedFieldCollections as $fieldCollectionName) {
+                    $this->createEdge($parentClass, $fieldCollectionName, $fieldCollectionName,  'onetomany');
                 }
             }
 
             if (!empty($relatedObjectBricks)) {
-                foreach ($relatedObjectBricks as $relatedObjectBrick => $objectBrickName) {
-                    $this->createEdge($parentClass, $objectBrickName, '', $objectBrickName);
+                foreach ($relatedObjectBricks as $objectBrickName) {
+                    $this->createEdge($parentClass, $objectBrickName, $objectBrickName,  'onetoone');
                 }
             }
         }
@@ -106,7 +101,7 @@ class GraphMLWriter
         }
     }
 
-    private function createNode(array $entry, bool $isFieldCollection = false, bool $isObjecktBrick = false)
+    private function createNode(array $entry, bool $isFieldCollection = false, bool $isObjecktBrick = false): void
     {
         $className = $entry['name'];
         $fillColor = '#E8EEF7';
@@ -120,7 +115,7 @@ class GraphMLWriter
         $attributes = $this->createAttributes($entry);
 
         /*
-         * Sadly i cant use Spatie\ArrayToXml\ArrayToXml here because it's not possible to set an array for the _value
+         * Sadly I can't use Spatie\ArrayToXml\ArrayToXml here because it's not possible to set an array for the _value
          * Element
          * see: https://github.com/spatie/array-to-xml/issues/75#issuecomment-413726065
          */
@@ -129,9 +124,9 @@ class GraphMLWriter
             <y:GenericNode configuration="com.yworks.entityRelationship.big_entity">
               <y:Geometry height="%d" width="%d" />
               <y:Fill color="#E8EEF7" color2="#B7C9E3" transparent="false"/>
-              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s" 
-                           configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center" 
-                           modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom" 
+              <y:NodeLabel alignment="center" autoSizePolicy="content" backgroundColor="%s"
+                           configuration="com.yworks.entityRelationship.label.name"  horizontalTextPosition="center"
+                           modelName="internal" modelPosition="t" textColor="#000000" verticalTextPosition="bottom"
                            visible="true"  >%s</y:NodeLabel>
               %s
             </y:GenericNode>
@@ -205,23 +200,20 @@ class GraphMLWriter
         return $arrayToXml->dropXmlDeclaration()->prettify()->toXml();
     }
 
-    private function createEdge($source, $target, $relationType = '', $labelName)
+    private function createEdge($source, $target, $labelName, $relationType = ''): void
     {
-        if (strpos(strtolower($relationType), 'manytomany') !== false) {
+        $sourceArrowType = self::NONE;
+        $targetArrowType = self::NONE;
+
+        if (str_contains(strtolower($relationType), 'manytomany')) {
             $sourceArrowType = self::CROWS_FOOT_MANY;
             $targetArrowType = self::CROWS_FOOT_MANY;
         }
-        if (strpos(strtolower($relationType), 'onetomany') !== false) {
-            $sourceArrowType = self::NONE;
+        if (str_contains(strtolower($relationType), 'onetomany')) {
             $targetArrowType = self::CROWS_FOOT_MANY;
         }
-        if (strpos(strtolower($relationType), 'manytoone') !== false) {
+        if (str_contains(strtolower($relationType), 'manytoone')) {
             $sourceArrowType = self::CROWS_FOOT_MANY;
-            $targetArrowType = self::NONE;
-        }
-        if ($relationType == '') {
-            $sourceArrowType = self::NONE;
-            $targetArrowType = self::NONE;
         }
 
         $edgeContent = "
@@ -229,8 +221,8 @@ class GraphMLWriter
             <data key='edgegraphics'>
                  <y:PolyLineEdge>
                     <y:Arrows source='%s' target='%s'/>
-                    <y:EdgeLabel alignment='center' configuration='AutoFlippingLabel' distance='2.0' 
-                                 horizontalTextPosition='center'  modelName='custom' preferredPlacement='center_on_edge' 
+                    <y:EdgeLabel alignment='center' configuration='AutoFlippingLabel' distance='2.0'
+                                 horizontalTextPosition='center'  modelName='custom' preferredPlacement='center_on_edge'
                                  ratio='0.5' verticalTextPosition='bottom' >%s
                         <y:LabelModel>
                             <y:RotatedDiscreteEdgeLabelModel angle='0.0' autoRotationEnabled='true'/>
@@ -238,9 +230,9 @@ class GraphMLWriter
                         <y:ModelParameter>
                             <y:RotatedDiscreteEdgeLabelModelParameter position='tail'/>
                         </y:ModelParameter>
-                        <y:PreferredPlacementDescriptor 
-                            angle='0.0' angleOffsetOnRightSide='0' angleReference='absolute' 
-                            angleRotationOnRightSide='co' distance='-1.0' placement='center' side='on_edge' 
+                        <y:PreferredPlacementDescriptor
+                            angle='0.0' angleOffsetOnRightSide='0' angleReference='absolute'
+                            angleRotationOnRightSide='co' distance='-1.0' placement='center' side='on_edge'
                             sideReference='relative_to_edge_flow'/>
                     </y:EdgeLabel>
                  </y:PolyLineEdge>
@@ -259,19 +251,6 @@ class GraphMLWriter
         $this->actualEdgeId += 1;
 
         $this->xmlOutput .= $edgeContent;
-    }
-
-    private function writeToFile()
-    {
-        $dirname = dirname(__DIR__, 5) . '/var/tmp/';
-
-        if (empty($this->filename)) {
-            $file = $dirname . 'output.graphml';
-        } else {
-            $file = $dirname . $this->filename . '.graphml';
-        }
-
-        file_put_contents($file, $this->xmlOutput);
     }
 
     private function createFooter()
