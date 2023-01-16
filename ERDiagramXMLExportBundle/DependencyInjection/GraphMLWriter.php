@@ -180,18 +180,18 @@ class GraphMLWriter
 
         $rootElement = [
             'rootElementName' => 'y:NodeLabel',
-            '_attributes' => [
-                'alignement' => 'left',
-                'autoSizePolicy' => 'content',
+            '_attributes'     => [
+                'alignement'             => 'left',
+                'autoSizePolicy'         => 'content',
                 'horizontalTextPosition' => 'center',
-                'verticalTextPosition' => 'top',
-                'visible' => 'true',
-                'clipContent' => 'true',
-                'hasDetailsColor' => 'false',
-                'omitDetails' => 'false',
-                'modelName' => 'internal',
-                'modelPosition' => 'c',
-                'configuration' => 'com.yworks.entityRelationship.label.attributes',
+                'verticalTextPosition'   => 'top',
+                'visible'                => 'true',
+                'clipContent'            => 'true',
+                'hasDetailsColor'        => 'false',
+                'omitDetails'            => 'false',
+                'modelName'              => 'internal',
+                'modelPosition'          => 'c',
+                'configuration'          => 'com.yworks.entityRelationship.label.attributes',
             ],
 
         ];
@@ -263,12 +263,15 @@ class GraphMLWriter
 
     private function writeToFile()
     {
-        $dirname = dirname(__DIR__, 5) . '/var/tmp/';
+        $dirname = dirname(__DIR__, 5) . '/var/bundles/ERDiagramXMLExportBundle';
+        if (!is_dir($dirname)) {
+            \Pimcore\File::mkdir($dirname);
+        }
 
         if (empty($this->filename)) {
-            $file = $dirname . 'output.graphml';
+            $file = $dirname . '/pimcore.graphml';
         } else {
-            $file = $dirname . $this->filename . '.graphml';
+            $file = $dirname . '/' . $this->filename . '.graphml';
         }
 
         file_put_contents($file, $this->xmlOutput);
