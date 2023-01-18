@@ -74,13 +74,20 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
             $fields = [$fieldDefinition->getName() => $fieldDefinition->getFieldtype()];
 
             if ($fieldDefinition instanceof AbstractRelations) {
-                $allowedTypes = array_map(function ($classConfig) use ($fieldDefinition) {
-                    if ($fieldDefinition instanceof ManyToOneRelation) {
-                        return $classConfig['classes'] ?? '';
-                    } else {
-                        return ($classConfig['classes'] . '[]') ?? '';
-                    }
-                }, $fieldDefinition->getClasses());
+                $allowedTypes = [];
+                if ($fieldDefinition->getObjectsAllowed()) {
+                    $allowedTypes = array_map(function ($classConfig) use ($fieldDefinition) {
+                        if ($fieldDefinition instanceof ManyToOneRelation) {
+                            return $classConfig['classes'] ?? '';
+                        } else {
+                            return ($classConfig['classes'] . '[]') ?? '';
+                        }
+                    }, $fieldDefinition->getClasses());
+                }
+
+                if ($fieldDefinition->getAssetsAllowed() || $fieldDefinition->getDocumentsAllowed()) {
+                    $allowedTypes[] = $fieldDefinition instanceof ManyToOneRelation ? 'Asset' : 'Asset[]';
+                }
 
                 $fields = [$fieldDefinition->getName() => !empty($allowedTypes) ? implode(' | ', $allowedTypes) : ''];
             }
