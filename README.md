@@ -20,3 +20,6 @@ bin/console basilicom:create-er-diagram-xml-export <filename>
 ```
 
 The generated file will be saved in the `var/bundles/ERDiagramXMLExportBundle` folder with filename `pimcore.graphml` or the given `<filename>.graphml`.
+
+![Example](./docs/example.png)
+⚑ = localized field
