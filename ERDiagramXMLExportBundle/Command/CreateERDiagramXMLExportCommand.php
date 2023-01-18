@@ -1,10 +1,13 @@
 <?php
 
-namespace Basilicom\ERDiagramXMLExportBundle\Command ;
+namespace Basilicom\ERDiagramXMLExportBundle\Command;
 
 use Pimcore\Model\DataObject;
 use Pimcore\Model\DataObject\ClassDefinition\Data\Fieldcollections as FieldCollections;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Localizedfields;
+use Pimcore\Model\DataObject\ClassDefinition\Data\ManyToOneRelation;
 use Pimcore\Model\DataObject\ClassDefinition\Data\Objectbricks as ObjectBricks;
+use Pimcore\Model\DataObject\ClassDefinition\Data\Relations\AbstractRelations;
 use Pimcore\Model\DataObject\ClassDefinition\Listing as ClassDefinitionListing;
 use Pimcore\Model\DataObject\Fieldcollection\Definition\Listing as FieldCollectionListing;
 use Pimcore\Model\DataObject\Objectbrick\Definition\Listing as ObjectBrickListing;
@@ -48,17 +51,16 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
         foreach ($classDefinitions as $classDefinition) {
             $fieldDefinitions = $classDefinition->getFieldDefinitions();
 
-
             $data = [
-                'id' => $classDefinition->getId(),
-                'name' => $classDefinition->getName(),
-                'fields' => $this->processFieldDefinitions($fieldDefinitions),
-                'relatedClasses' => $this->getRelatedClasses($fieldDefinitions),
+                'id'                      => $classDefinition->getId(),
+                'name'                    => $classDefinition->getName(),
+                'fields'                  => $this->processFieldDefinitions($fieldDefinitions),
+                'relatedClasses'          => $this->getRelatedClasses($fieldDefinitions),
                 'relatedFieldCollections' => $this->getRelatedFieldCollections($fieldDefinitions),
-                'relatedObjectBricks' => $this->getRelatedObjectBricks($fieldDefinitions),
+                'relatedObjectBricks'     => $this->getRelatedObjectBricks($fieldDefinitions),
             ];
 
-            array_push($classDefinitionData, $data);
+            $classDefinitionData[] = $data;
         }
 
         return $classDefinitionData;
@@ -68,26 +70,46 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
     {
         $data = [];
 
-        /** @var DataObject\ClassDefinition\Data $fieldDefinition */
         foreach ($fieldDefinitions as $fieldDefinition) {
-            $fieldType = $fieldDefinition->getFieldtype();
+            $fields = [$fieldDefinition->getName() => $fieldDefinition->getFieldtype()];
 
-            if (strpos($fieldType, 'Relation') == false) {
-                $fields = [
-                    $fieldDefinition->getName() => $fieldType,
-                ];
-                if ($fieldDefinition instanceof FieldCollections) {
-                    $allowedTypes = [];
-
-                    foreach ($fieldDefinition->getAllowedTypes() as $allowedType) {
-                        array_push($allowedTypes, $allowedType);
+            if ($fieldDefinition instanceof AbstractRelations) {
+                $allowedTypes = array_map(function ($classConfig) use ($fieldDefinition) {
+                    if ($fieldDefinition instanceof ManyToOneRelation) {
+                        return $classConfig['classes'] ?? '';
+                    } else {
+                        return ($classConfig['classes'] . '[]') ?? '';
                     }
-                    $fields = [
-                        $fieldDefinition->getName() => $allowedTypes,
-                    ];
-                }
-                array_push($data, $fields);
+                }, $fieldDefinition->getClasses());
+
+                $fields = [$fieldDefinition->getName() => !empty($allowedTypes) ? implode(' | ', $allowedTypes) : ''];
             }
+
+            if ($fieldDefinition instanceof FieldCollections) {
+                $allowedTypes = [];
+
+                foreach ($fieldDefinition->getAllowedTypes() as $allowedType) {
+                    $allowedTypes[] = $allowedType;
+                }
+
+                $fields = [$fieldDefinition->getName() => $allowedTypes];
+            }
+
+            if ($fieldDefinition instanceof Localizedfields) {
+                $localizedFields = $this->processFieldDefinitions($fieldDefinition->getFieldDefinitions());
+
+                foreach ($localizedFields as $localizedField) {
+                    array_walk($localizedField, function (&$value) {
+                        $value .= ' ⚑';
+                    });
+
+                    $data[] = $localizedField;
+                }
+
+                continue;
+            }
+
+            $data[] = $fields;
         }
 
         return $data;
@@ -103,7 +125,7 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
             if (strpos($fieldType, 'Relation') !== false) {
                 foreach ($fieldDefinition->getClasses() as $class) {
-                    array_push($relatedClasses, [$fieldType => $class['classes']]);
+                    $relatedClasses[] = [$fieldType => $class['classes']];
                 }
             }
         }
@@ -117,8 +139,8 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
         foreach ($fieldDefinitions as $fieldDefinition) {
             if ($fieldDefinition instanceof FieldCollections) {
-                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
-                    array_push($data, $name);
+                foreach ($fieldDefinition->getAllowedTypes() as $name) {
+                    $data[] = $name;
                 }
             }
         }
@@ -132,8 +154,8 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
         foreach ($fieldDefinitions as $fieldDefinition) {
             if ($fieldDefinition instanceof ObjectBricks) {
-                foreach ($fieldDefinition->getAllowedTypes() as $allowedType => $name) {
-                    array_push($data, $name);
+                foreach ($fieldDefinition->getAllowedTypes() as $name) {
+                    $data[] = $name;
                 }
             }
         }
@@ -150,12 +172,10 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
         foreach ($fieldCollections as $fieldCollection) {
             $data['fieldCollection'] = [
-
-                'name' => $fieldCollection->getKey(),
+                'name'   => $fieldCollection->getKey(),
                 'fields' => $this->processFieldDefinitions($fieldCollection->getFieldDefinitions()),
-
             ];
-            array_push($fieldCollectionData, $data);
+            $fieldCollectionData[] = $data;
         }
 
         return $fieldCollectionData;
@@ -170,12 +190,10 @@ class CreateERDiagramXMLExportCommand extends AbstractCommand
 
         foreach ($objectBricks as $objectBrick) {
             $data['objectBrick'] = [
-
-                'name' => $objectBrick->getKey(),
+                'name'   => $objectBrick->getKey(),
                 'fields' => $this->processFieldDefinitions($objectBrick->getFieldDefinitions()),
-
             ];
-            array_push($objectBricksData, $data);
+            $objectBricksData[] = $data;
         }
 
         return $objectBricksData;

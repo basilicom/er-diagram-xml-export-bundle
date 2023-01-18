@@ -1,9 +1,8 @@
 <?php
 
-
 namespace Basilicom\ERDiagramXMLExportBundle\DependencyInjection;
 
-use phpDocumentor\Reflection\Types\Self_;
+use Pimcore\File;
 use Spatie\ArrayToXml\ArrayToXml;
 
 class GraphMLWriter
@@ -76,19 +75,19 @@ class GraphMLWriter
             if (!empty($relatedClasses)) {
                 foreach ($relatedClasses as $class) {
                     foreach ($class as $relationType => $className) {
-                        $this->createEdge($parentClass, $className, $relationType, $className);
+                        $this->createEdge($parentClass, $className, $className, $relationType);
                     }
                 }
             }
             if (!empty($relatedFieldCollections)) {
-                foreach ($relatedFieldCollections as $relatedFieldCollection => $fieldCollectionName) {
-                    $this->createEdge($parentClass, $fieldCollectionName, 'onetomany', $fieldCollectionName);
+                foreach ($relatedFieldCollections as $fieldCollectionName) {
+                    $this->createEdge($parentClass, $fieldCollectionName, $fieldCollectionName, 'onetomany');
                 }
             }
 
             if (!empty($relatedObjectBricks)) {
-                foreach ($relatedObjectBricks as $relatedObjectBrick => $objectBrickName) {
-                    $this->createEdge($parentClass, $objectBrickName, '', $objectBrickName);
+                foreach ($relatedObjectBricks as $objectBrickName) {
+                    $this->createEdge($parentClass, $objectBrickName, $objectBrickName, '');
                 }
             }
         }
@@ -138,6 +137,9 @@ class GraphMLWriter
           </data>
         </node>';
 
+        // todo ==> localized fields are not printed correctly
+        // todo ==> relation fields are not printed as attribute
+
         $nodeContent = sprintf(
             $nodeContent,
             $className,
@@ -160,20 +162,20 @@ class GraphMLWriter
             $this->actualBoxHeight = 70 + count($fields) * 15;
 
             foreach ($fields as $field) {
-                foreach ($field as $fieldname => $fieldtype) {
-                    if (!is_array($fieldtype)) {
-                        $attributesString .= $fieldname . ': ' . $fieldtype . PHP_EOL;
+                foreach ($field as $fieldName => $fieldType) {
+                    if (!is_array($fieldType)) {
+                        $attributesString .= $fieldName . ': ' . $fieldType . PHP_EOL;
                     }
-                    if (is_array($fieldtype)) {
+                    if (is_array($fieldType)) {
                         $allowedTypes = '';
-                        foreach ($fieldtype as $index => $allowedType) {
+                        foreach ($fieldType as $allowedType) {
                             $allowedTypes .= $allowedType . ' | ';
                         }
 
                         $allowedTypes = substr($allowedTypes, 0, -3);
-                        $attributesString .= $fieldname . ': ' . $allowedTypes . PHP_EOL;
+                        $attributesString .= $fieldName . ': ' . $allowedTypes . PHP_EOL;
                     }
-                    $this->actualBoxWidth = 250 + strlen($fieldname);
+                    $this->actualBoxWidth = 250 + strlen($fieldName);
                 }
             }
         }
@@ -193,7 +195,6 @@ class GraphMLWriter
                 'modelPosition'          => 'c',
                 'configuration'          => 'com.yworks.entityRelationship.label.attributes',
             ],
-
         ];
 
         $attributes = [
@@ -205,8 +206,11 @@ class GraphMLWriter
         return $arrayToXml->dropXmlDeclaration()->prettify()->toXml();
     }
 
-    private function createEdge($source, $target, $relationType = '', $labelName)
+    private function createEdge($source, $target, $labelName, $relationType = '')
     {
+        $sourceArrowType = self::NONE;
+        $targetArrowType = self::NONE;
+
         if (strpos(strtolower($relationType), 'manytomany') !== false) {
             $sourceArrowType = self::CROWS_FOOT_MANY;
             $targetArrowType = self::CROWS_FOOT_MANY;
@@ -217,10 +221,6 @@ class GraphMLWriter
         }
         if (strpos(strtolower($relationType), 'manytoone') !== false) {
             $sourceArrowType = self::CROWS_FOOT_MANY;
-            $targetArrowType = self::NONE;
-        }
-        if ($relationType == '') {
-            $sourceArrowType = self::NONE;
             $targetArrowType = self::NONE;
         }
 
@@ -265,7 +265,7 @@ class GraphMLWriter
     {
         $dirname = dirname(__DIR__, 5) . '/var/bundles/ERDiagramXMLExportBundle';
         if (!is_dir($dirname)) {
-            \Pimcore\File::mkdir($dirname);
+            File::mkdir($dirname);
         }
 
         if (empty($this->filename)) {
