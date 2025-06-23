@@ -15,6 +15,8 @@ class ERDiagramXMLExportExtension extends Extension
     public function load(array $configs, ContainerBuilder $container)
     {
         $loader = new YamlFileLoader($container, new FileLocator(__DIR__ . '/../Resources/config'));
-        $loader->load('services.yml');
+        if (file_exists(__DIR__ . '/../Resources/config/services.yaml')) {
+            $loader->load('services.yaml');
+        }
     }
 }

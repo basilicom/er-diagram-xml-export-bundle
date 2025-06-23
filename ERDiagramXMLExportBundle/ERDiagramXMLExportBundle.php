@@ -9,7 +9,7 @@ class ERDiagramXMLExportBundle extends AbstractPimcoreBundle
     /**
      * @inheritDoc
      */
-    public function getDescription()
+    public function getDescription(): string
     {
         return 'Provides an YED Compliant XML Representation of the Pimcore Class Structure';
     }
